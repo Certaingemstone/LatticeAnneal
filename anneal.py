@@ -24,19 +24,19 @@ print(lat)
 #Functions
 def checkAdjacents(i,j,lat):
     adj = np.array([])
-    try:
+    try: #Need to deal with corners: (4,4) and ()
         #Top edge
         if i == 0:
-            adj = np.array([lat[i,j-1] , lat[i,j+1] , lat[i+1,j-1] , lat[i+1,j]])
+            adj = np.array(None , None , [lat[i,j-1] , lat[i,j+1] , lat[i+1,j-1] , lat[i+1,j]])
         #Left edge
         elif j == 0:
-            adj = np.array([lat[i-1,j] , lat[i-1,j+1] , lat[i,j+1] , lat[i+1,j]])
+            adj = np.array([lat[i-1,j] , lat[i-1,j+1] , None , lat[i,j+1] , None , lat[i+1,j]])
         #Bottom edge
         elif i == N-1:
-            adj = np.array([lat[i-1,j] , lat[i-1,j+1] , lat[i,j-1] , lat[i,j+1]])
+            adj = np.array([lat[i-1,j] , lat[i-1,j+1] , lat[i,j-1] , lat[i,j+1] , None , None])
         #Right edge
         elif j == N-1:
-            adj = np.array([lat[i-1,j] , lat[i,j-1] , lat[i+1,j-1] , lat[i+1,j]])
+            adj = np.array([lat[i-1,j] , None , lat[i,j-1] , None , lat[i+1,j-1] , lat[i+1,j]])
         else:
         #Check all adjacents
             adj = np.array([lat[i-1,j] , lat[i-1,j+1] , lat[i,j-1] , lat[i,j+1] , lat[i+1,j-1] , lat[i+1,j]])
@@ -51,6 +51,7 @@ for i in range(N):
     for j in range(N):
         if lat[i,j] == 1:
             adj = checkAdjacents(i,j,lat)
-            for adjacent in adj:
-                if adjacent == 0:
+            print(adj)
+            print("\n")
+
                     #do something here to checkadjacents for the i,j of the corresponding adjacent
