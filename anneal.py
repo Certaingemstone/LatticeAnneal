@@ -2,56 +2,94 @@ import numpy as np
 import matplotlib.pyplot as pl
 
 #Inputs
-N = 5
-fill = 14
+N = 3
+fill = 5
 
 N2 = N**2
-frac = fill/N2
-if frac > 1.0:
+if fill > N2:
     print("lattice overfill")
     quit()
-if frac < 0.333: a = 3
-elif frac < 0.5: a = 2
-else: a = 1
 
 #Initial Lattice Condition
 lat = np.zeros(N2, dtype=int)
 for i in range(fill):
-    lat[N2-1-a*i] = 1
+    lat[i] = 1
+np.random.shuffle(lat)
 lat = lat.reshape((N,N))
 print(lat)
 
-#Functions
+#Functions - Need to add a way to switch to square lattice
+
+#Possible adjacents
+def top(i,j,lat):
+    return lat[i-1,j]
+def toprht(i,j,lat):
+    return lat[i-1,j+1]
+def lft(i,j,lat):
+    return lat[i,j-1]
+def rht(i,j,lat):
+    return lat[i,j+1]
+def botlft(i,j,lat):
+    return lat[i+1,j-1]
+def bot(i,j,lat):
+    return lat[i+1,j]
+
+#Create adjacency list
 def checkAdjacents(i,j,lat):
     adj = np.array([])
-    try: #Need to deal with corners: (4,4) and ()
+    try:
+        #Bottom Left
+        if i == N-1 and j == 0:
+            adj = np.array([top(i,j,lat) , toprht(i,j,lat) , None , rht(i,j,lat) , None , None])
+        #Bottom Right
+        elif i == N-1 and j == N-1:
+            adj = np.array([top(i,j,lat) , None , lft(i,j,lat) , None , None , None])
+        #Top Right
+        elif i == 0 and j == N-1:
+            adj = np.array([None , None , lft(i,j,lat) , None , botlft(i,j,lat) , bot(i,j,lat)])
+        #Top Left
+        elif i == 0 and j == 0:
+            adj = np.array([None , None , None , rht(i,j,lat) , None , bot(i,j,lat)])
         #Top edge
-        if i == 0:
-            adj = np.array(None , None , [lat[i,j-1] , lat[i,j+1] , lat[i+1,j-1] , lat[i+1,j]])
+        elif i == 0:
+            adj = np.array([None , None , lft(i,j,lat) , rht(i,j,lat) , botlft(i,j,lat) , bot(i,j,lat)])
         #Left edge
         elif j == 0:
-            adj = np.array([lat[i-1,j] , lat[i-1,j+1] , None , lat[i,j+1] , None , lat[i+1,j]])
+            adj = np.array([top(i,j,lat) , toprht(i,j,lat) , None , rht(i,j,lat) , None , bot(i,j,lat)])
         #Bottom edge
         elif i == N-1:
-            adj = np.array([lat[i-1,j] , lat[i-1,j+1] , lat[i,j-1] , lat[i,j+1] , None , None])
+            adj = np.array([top(i,j,lat) , toprht(i,j,lat) , lft(i,j,lat) , rht(i,j,lat) , None , None])
         #Right edge
         elif j == N-1:
-            adj = np.array([lat[i-1,j] , None , lat[i,j-1] , None , lat[i+1,j-1] , lat[i+1,j]])
+            adj = np.array([top(i,j,lat) , None , lft(i,j,lat) , None , botlft(i,j,lat) , bot(i,j,lat)])
         else:
         #Check all adjacents
-            adj = np.array([lat[i-1,j] , lat[i-1,j+1] , lat[i,j-1] , lat[i,j+1] , lat[i+1,j-1] , lat[i+1,j]])
+            adj = np.array([top(i,j,lat) , toprht(i,j,lat) , lft(i,j,lat) , rht(i,j,lat) , botlft(i,j,lat) , bot(i,j,lat)])
     except IndexError:
-        print("Corner i"+str(i)+", j"+str(j))
-        adj = np.array([])
+        print("Something went wrong at i"+str(i)+", j"+str(j))
     return adj
+
+#Potential of bonds
+def getEnergy(adj):
+    filter = adj != None
+    cleanadj = adj[filter]
+    return np.sum(cleanadj)
+
+#Sorta-canonical partition function, for adjacent microstates possible for a site
+def partitionFunc(adjE,T):
+    terms = np.array([])
+    for E in adjE:
+        np.append(terms, np.exp(-(E/T)) )
+    return np.sum(terms)
 
 #Main
 T = 1.0
 for i in range(N):
     for j in range(N):
+        #Now specific to an i,j
         if lat[i,j] == 1:
+            #Adjacency list
             adj = checkAdjacents(i,j,lat)
-            print(adj)
-            print("\n")
-
-                    #do something here to checkadjacents for the i,j of the corresponding adjacent
+            #Determine probabilities of empty adjacent sites
+            for a in range(5):
+                if adj[a] == 0:
