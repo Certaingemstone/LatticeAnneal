@@ -1,9 +1,13 @@
 import numpy as np
 import matplotlib.pyplot as pl
+import random
 
 #Inputs
-N = 3
-fill = 5
+N = 30
+fill = 600
+steps = 300
+#low (-1) or high (1) Energy
+lohi = -1
 
 N2 = N**2
 if fill > N2:
@@ -16,7 +20,6 @@ for i in range(fill):
     lat[i] = 1
 np.random.shuffle(lat)
 lat = lat.reshape((N,N))
-print(lat)
 
 #Functions - Need to add a way to switch to square lattice
 
@@ -34,9 +37,15 @@ def botlft(i,j,lat):
 def bot(i,j,lat):
     return lat[i+1,j]
 
+""" sites and indices
+  0 1
+2 X 3
+4 5
+"""
+
 #Create adjacency list
 def checkAdjacents(i,j,lat):
-    adj = np.array([])
+    adj = np.array([None, None, None, None, None, None])
     try:
         #Bottom Left
         if i == N-1 and j == 0:
@@ -75,21 +84,49 @@ def getEnergy(adj):
     cleanadj = adj[filter]
     return np.sum(cleanadj)
 
-#Sorta-canonical partition function, for adjacent microstates possible for a site
-def partitionFunc(adjE,T):
-    terms = np.array([])
+#Take adjacent energies, give probabilities. Last term is probability of staying in same position.
+def EtoP(adjE,T):
+    terms = []
     for E in adjE:
-        np.append(terms, np.exp(-(E/T)) )
-    return np.sum(terms)
+        if E != None:
+            terms.append(np.exp(lohi*(E/T)) )
+        else:
+            terms.append(0)
+    Z = np.sum(terms)
+    return np.divide(terms, Z)
 
 #Main
+#adj: adjacency list (1 if occupied, 0 if empty, None if wall), adjP: probabilities of adjacent sites, and lastly the current site (0 to 1, None if adjacent site full)
 T = 1.0
-for i in range(N):
-    for j in range(N):
-        #Now specific to an i,j
-        if lat[i,j] == 1:
-            #Adjacency list
-            adj = checkAdjacents(i,j,lat)
-            #Determine probabilities of empty adjacent sites
-            for a in range(5):
-                if adj[a] == 0:
+while T > 0.01:
+    for i in range(N):
+        for j in range(N):
+            #Now specific to an i,j
+            adjCoords = {0:[i-1,j], 1:[i-1,j+1], 2:[i,j-1], 3:[i,j+1], 4:[i+1,j-1], 5:[i+1,j], 6:[i,j]}
+            if lat[i,j] == 1:
+                #Adjacency list
+                adj = checkAdjacents(i,j,lat)
+                adjE = []
+                #Determine probabilities of empty adjacent sites
+                for a in range(6):
+                    if adj[a] == 0:
+                        adjE.append(getEnergy(checkAdjacents(adjCoords[a][0], adjCoords[a][1], lat)) - 1)
+                    else:
+                        adjE.append(None)
+                adjE.append(getEnergy(adj))
+                adjP = EtoP(adjE, T)
+                #Decide which site to move to, or whether to stay
+                #cdf: cumulative distribution starting from site 0, a: index of site chosen to move to SEEMS TO BIAS TOWARDS TOP LEFT
+                rand = random.random()
+                cdf = 0
+                a = -1
+                while cdf < rand:
+                    cdf += adjP[a+1]
+                    a += 1
+                #Move or don't move the particle
+                lat[i,j] = 0
+                lat[adjCoords[a][0], adjCoords[a][1]] = 1
+    T -= 1/steps
+    print("Temperature: ", T)
+pl.imshow(lat, cmap='hot')
+pl.show()
