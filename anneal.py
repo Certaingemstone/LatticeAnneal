@@ -3,11 +3,14 @@ import matplotlib.pyplot as pl
 import random
 
 #Inputs
-N = 30
-fill = 600
-steps = 300
+N = 100
+fill = 6666
+#Higher gives more steps, nonlinear
+steps = 20
 #low (-1) or high (1) Energy
 lohi = -1
+T = 10
+stopT = 0.01
 
 N2 = N**2
 if fill > N2:
@@ -97,13 +100,13 @@ def EtoP(adjE,T):
 
 #Main
 #adj: adjacency list (1 if occupied, 0 if empty, None if wall), adjP: probabilities of adjacent sites, and lastly the current site (0 to 1, None if adjacent site full)
-T = 1.0
-while T > 0.01:
+while T > stopT:
+    excluded = []
     for i in range(N):
         for j in range(N):
             #Now specific to an i,j
             adjCoords = {0:[i-1,j], 1:[i-1,j+1], 2:[i,j-1], 3:[i,j+1], 4:[i+1,j-1], 5:[i+1,j], 6:[i,j]}
-            if lat[i,j] == 1:
+            if lat[i,j] == 1 and (i,j) not in excluded:
                 #Adjacency list
                 adj = checkAdjacents(i,j,lat)
                 adjE = []
@@ -126,7 +129,9 @@ while T > 0.01:
                 #Move or don't move the particle
                 lat[i,j] = 0
                 lat[adjCoords[a][0], adjCoords[a][1]] = 1
-    T -= 1/steps
+                #Avoid moving particles just moved
+                excluded.append((adjCoords[a][0], adjCoords[a][1]))
+    T -= T/steps
     print("Temperature: ", T)
 pl.imshow(lat, cmap='hot')
 pl.show()
