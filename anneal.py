@@ -1,30 +1,40 @@
+#Operates on a 2D array, with elements representing the sites of a triangular lattice
+#Attempts to either minimize or maximize the local number of "bonds" between adjacent sites
+#Employs a version of simulated annealing for optimization.
+#Created by Jade Chongsathapornpong, for MIT 8.044 Statistical Physics final assignment, Spring 2020
+
 import numpy as np
 import matplotlib.pyplot as pl
 import random
 
 #Inputs
+#Side dimension of the square array representing a triangular lattice
 N = 100
+#Number of sites filled
 fill = 6666
-#Higher gives more steps, nonlinear
-steps = 20
-#low (-1) or high (1) Energy
+#Higher gives more steps, nonlinear, recommend <4
+steps = 3
+#low (-1) or high (1) Energy; low -> particles repel; high -> particles attract
 lohi = -1
+#Initial and final "temperature," recommend not changing
 T = 10
 stopT = 0.01
 
+#Check if valid fill
 N2 = N**2
 if fill > N2:
     print("lattice overfill")
     quit()
 
-#Initial Lattice Condition
+#Initialize Lattice; value of 1 represents filled site
 lat = np.zeros(N2, dtype=int)
 for i in range(fill):
     lat[i] = 1
 np.random.shuffle(lat)
 lat = lat.reshape((N,N))
 
-#Functions - Need to add a way to switch to square lattice
+
+#Functions - Will someday add a flag to simulate square lattice
 
 #Possible adjacents
 def top(i,j,lat):
@@ -40,13 +50,19 @@ def botlft(i,j,lat):
 def bot(i,j,lat):
     return lat[i+1,j]
 
-""" sites and indices
+""" site indices for triangular (relative positions in the 2D array)
   0 1
 2 X 3
 4 5
 """
 
-#Create adjacency list
+""" site indices for square (TO BE ADDED)
+  0
+2 X 3
+  5
+"""
+
+#Create adjacency list; should change to switch but this works okay
 def checkAdjacents(i,j,lat):
     adj = np.array([None, None, None, None, None, None])
     try:
@@ -87,7 +103,7 @@ def getEnergy(adj):
     cleanadj = adj[filter]
     return np.sum(cleanadj)
 
-#Take adjacent energies, give probabilities. Last term is probability of staying in same position.
+#Take adjacent energies, give probabilities (assuming canonical ensemble). Last element is probability of staying in same position.
 def EtoP(adjE,T):
     terms = []
     for E in adjE:
@@ -106,6 +122,7 @@ while T > stopT:
         for j in range(N):
             #Now specific to an i,j
             adjCoords = {0:[i-1,j], 1:[i-1,j+1], 2:[i,j-1], 3:[i,j+1], 4:[i+1,j-1], 5:[i+1,j], 6:[i,j]}
+            #check if site occupied and if not previously moved to during this turn
             if lat[i,j] == 1 and (i,j) not in excluded:
                 #Adjacency list
                 adj = checkAdjacents(i,j,lat)
@@ -114,17 +131,19 @@ while T > stopT:
                 for a in range(6):
                     if adj[a] == 0:
                         adjE.append(getEnergy(checkAdjacents(adjCoords[a][0], adjCoords[a][1], lat)) - 1)
+                        #-1 to avoid counting energy of currently occupied site
                     else:
                         adjE.append(None)
+                #Determine probability of current site
                 adjE.append(getEnergy(adj))
                 adjP = EtoP(adjE, T)
                 #Decide which site to move to, or whether to stay
-                #cdf: cumulative distribution starting from site 0, a: index of site chosen to move to SEEMS TO BIAS TOWARDS TOP LEFT
+                #cdf: cumulative distribution decreasing starting from site 0, a: index of site chosen to move to
                 rand = random.random()
-                cdf = 0
+                cdf = 1
                 a = -1
-                while cdf < rand:
-                    cdf += adjP[a+1]
+                while cdf > rand:
+                    cdf -= adjP[a+1]
                     a += 1
                 #Move or don't move the particle
                 lat[i,j] = 0
